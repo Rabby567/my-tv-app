@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f0f0f" />
+  <meta name="description" content="StreamVault — Free live TV channels from around the world. Browse thousands of IPTV streams by category and country." />
+  <meta name="keywords" content="IPTV, live TV, free channels, streaming, online TV" />
+  <meta property="og:title" content="StreamVault – Live TV" />
+  <meta property="og:description" content="Watch thousands of live TV channels for free." />
+  <meta property="og:type" content="website" />
+  <title>StreamVault – Live TV</title>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+
+  <!-- HLS.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js" defer></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ========== HEADER ========== -->
+  <header class="header" role="banner">
+    <div class="header__inner">
+      <a href="#" class="logo" aria-label="StreamVault Home">
+        <span class="logo__icon">▶</span>
+        <span class="logo__text">StreamVault</span>
+      </a>
+
+      <nav class="header__nav" aria-label="Primary navigation">
+        <button class="nav-btn active" data-view="home" aria-current="page">Home</button>
+        <button class="nav-btn" data-view="favorites">❤ Favorites</button>
+        <button class="nav-btn" data-view="recent">🕐 Recent</button>
+      </nav>
+
+      <div class="header__actions">
+        <button class="icon-btn" id="searchToggleBtn" aria-label="Toggle search" title="Search channels">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="darkModeToggle" aria-label="Toggle dark mode" title="Toggle theme">
+          <span id="themeIcon">☀️</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="search-bar" id="searchBar" role="search" aria-hidden="true">
+      <input
+        type="search"
+        id="searchInput"
+        placeholder="Search channels, categories, countries…"
+        autocomplete="off"
+        aria-label="Search channels"
+      />
+      <button class="search-clear" id="searchClear" aria-label="Clear search">✕</button>
+    </div>
+  </header>
+
+  <!-- ========== MAIN ========== -->
+  <main class="main" id="main">
+
+    <!-- Filter Bar -->
+    <section class="filter-bar" aria-label="Filters">
+      <div class="filter-bar__inner">
+        <div class="filter-group">
+          <label for="categoryFilter" class="filter-label">Category</label>
+          <select id="categoryFilter" class="filter-select" aria-label="Filter by category">
+            <option value="">All Categories</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="countryFilter" class="filter-label">Country</label>
+          <select id="countryFilter" class="filter-select" aria-label="Filter by country">
+            <option value="">All Countries</option>
+          </select>
+        </div>
+        <div class="filter-stats">
+          <span id="channelCount" class="stats-badge">Loading…</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Loading Skeleton -->
+    <div class="loading-overlay" id="loadingOverlay" aria-live="polite" aria-label="Loading channels">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">Fetching live channels…</p>
+    </div>
+
+    <!-- Error State -->
+    <div class="error-state" id="errorState" hidden>
+      <div class="error-icon">📡</div>
+      <h2>Couldn't load channels</h2>
+      <p>The playlist may be temporarily unavailable. Please try again.</p>
+      <button class="btn btn--primary" id="retryBtn">Retry</button>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" id="emptyState" hidden>
+      <div class="empty-icon">🔍</div>
+      <h2>No channels found</h2>
+      <p>Try adjusting your search or filters.</p>
+      <button class="btn btn--secondary" id="clearFiltersBtn">Clear filters</button>
+    </div>
+
+    <!-- Channel Grid -->
+    <section class="channel-grid-wrapper" id="channelGridWrapper" aria-label="Channel list">
+      <div class="channel-grid" id="channelGrid" role="list"></div>
+      <div class="load-more-sentinel" id="loadMoreSentinel" aria-hidden="true"></div>
+    </section>
+
+  </main>
+
+  <!-- ========== PLAYER MODAL ========== -->
+  <div class="player-modal" id="playerModal" role="dialog" aria-modal="true" aria-labelledby="playerTitle" hidden>
+    <div class="player-backdrop" id="playerBackdrop"></div>
+    <div class="player-container">
+      <div class="player-header">
+        <div class="player-meta">
+          <img class="player-logo" id="playerLogo" src="" alt="" loading="lazy" />
+          <div>
+            <h2 class="player-title" id="playerTitle">Channel Name</h2>
+            <p class="player-sub" id="playerSub">Category · Country</p>
+          </div>
+        </div>
+        <div class="player-header-actions">
+          <button class="icon-btn fav-btn" id="playerFavBtn" aria-label="Add to favorites" title="Favorite">♡</button>
+          <button class="icon-btn" id="playerClose" aria-label="Close player">✕</button>
+        </div>
+      </div>
+
+      <div class="player-screen" id="playerScreen">
+        <video id="videoPlayer" playsinline crossorigin="anonymous"></video>
+        <div class="player-spinner" id="playerSpinner" aria-hidden="true">
+          <div class="loading-spinner"></div>
+        </div>
+        <div class="stream-error" id="streamError" hidden>
+          <div class="stream-error__icon">📡</div>
+          <p>Stream unavailable</p>
+          <small>This channel may be offline or geo-restricted.</small>
+        </div>
+      </div>
+
+      <div class="player-controls" id="playerControls" role="group" aria-label="Video controls">
+        <button class="ctrl-btn" id="playPauseBtn" aria-label="Play/Pause">
+          <span id="playPauseIcon">▶</span>
+        </button>
+        <div class="volume-group">
+          <button class="ctrl-btn" id="muteBtn" aria-label="Mute/Unmute">🔊</button>
+          <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.05" value="1" aria-label="Volume" />
+        </div>
+        <span class="live-badge-player">● LIVE</span>
+        <div class="ctrl-spacer"></div>
+        <button class="ctrl-btn" id="fullscreenBtn" aria-label="Fullscreen">⛶</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== TOAST ========== -->
+  <div class="toast" id="toast" role="alert" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
